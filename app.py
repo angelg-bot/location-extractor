@@ -34,15 +34,20 @@ st.caption("上传剧本文件 → 自动提取场景库 + 角色库 → 下载 
 with st.sidebar:
     st.header("⚙️ 设置")
 
-    env_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    # Read API key: Streamlit secrets > env var > manual input
+    env_key = ""
+    try:
+        env_key = st.secrets["ANTHROPIC_API_KEY"]
+    except Exception:
+        env_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if env_key:
         api_key = env_key
-        st.success("API Key ✅ (from env)")
+        st.success("API Key ✅")
     else:
         api_key = st.text_input(
             "Claude API Key",
             type="password",
-            help="或设置环境变量 ANTHROPIC_API_KEY 后重启",
+            help="或设置环境变量 ANTHROPIC_API_KEY",
         )
 
     model = st.selectbox(
