@@ -1,0 +1,5 @@
+streamlit>=1.30
+anthropic>=0.40
+pdfplumber>=0.10
+openpyxl>=3.1
+# tiktoken>=0.5  # optional, for accurate token counting
