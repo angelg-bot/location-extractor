@@ -34,14 +34,10 @@ st.caption("上传剧本文件 → 自动提取场景库 + 角色库 → 下载 
 with st.sidebar:
     st.header("⚙️ 设置")
 
-    env_key = (
-        st.secrets.get("ANTHROPIC_API_KEY", "")
-        if hasattr(st, "secrets") and "ANTHROPIC_API_KEY" in st.secrets
-        else os.environ.get("ANTHROPIC_API_KEY", "")
-    )
+    env_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if env_key:
         api_key = env_key
-        st.success("API Key ✅")
+        st.success("API Key ✅ (from env)")
     else:
         api_key = st.text_input(
             "Claude API Key",
@@ -218,11 +214,12 @@ async def run_pipeline(episodes, api_key, model, batch_size, max_concurrent,
 # ──────────────────────────────────────────────
 
 if uploaded_files:
-    episodes = parse_all_uploads(uploaded_files)
+    with st.spinner("📄 解析文件中..."):
+        episodes = parse_all_uploads(uploaded_files)
     if episodes:
-        st.success(f"✅ 文件解析完成 — 检测到 **{len(episodes)} 集**（E{episodes[0].number} ~ E{episodes[-1].number}）")
+        st.success(f"文件解析完成 — 检测到 **{len(episodes)} 集**（E{episodes[0].number} ~ E{episodes[-1].number}）")
     else:
-        st.error("❌ 未检测到有效集数内容")
+        st.error("未检测到有效集数内容")
         st.stop()
 
     if st.button("🚀 开始提取", type="primary", disabled=not api_key):
@@ -232,10 +229,19 @@ if uploaded_files:
 
         ref_locs = parse_ref_locations(ref_file)
 
-        results = asyncio.run(run_pipeline(
-            episodes, api_key, model, batch_size, max_concurrent,
-            do_locations, do_characters, ref_locs, show_title,
-        ))
+        with st.status("🔄 提取中...", expanded=True) as status:
+            results = asyncio.run(run_pipeline(
+                episodes, api_key, model, batch_size, max_concurrent,
+                do_locations, do_characters, ref_locs, show_title,
+            ))
+            loc_count = len(results.get("scenes", []))
+            char_count = len(results.get("characters", []))
+            summary = []
+            if loc_count:
+                summary.append(f"{loc_count} 条场景")
+            if char_count:
+                summary.append(f"{char_count} 个角色")
+            status.update(label=f"✅ 提取完成 — {'、'.join(summary)}", state="complete", expanded=False)
 
         st.session_state["results"] = results
         st.session_state["title"] = show_title
